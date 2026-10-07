@@ -106,7 +106,7 @@ export default function App() {
       </div>
 
       <footer className="border-t border-zinc-800 py-8 text-center text-xs text-zinc-500">
-        <p>© 2026 BARBER CLUB · TODOS LOS DERECHOS RESERVADOS</p>
+        <p>© 2026 BARBER CLUB · AppeCrafter STAFE · TODOS LOS DERECHOS RESERVADOS</p>
       </footer>
     </div>
   );
