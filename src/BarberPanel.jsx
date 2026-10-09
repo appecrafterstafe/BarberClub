@@ -43,7 +43,7 @@ export default function BarberPanel({ appointments, onCancel }) {
               </div>
 
               <div className="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-zinc-800">
-                <span className="font-mono font-bold text-amber-400 text-base">${app.price?.toLocaleString()}</span>
+                <span className="font-mono font-bold text-amber-400 text-base">${Number(app.price || 0).toLocaleString()}</span>
                 {app.status === 'Confirmado' && (
                   <button
                     onClick={() => onCancel(app.id)}
