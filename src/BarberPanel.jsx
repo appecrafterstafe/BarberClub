@@ -13,13 +13,15 @@ export default function BarberPanel({ appointments, onCancel }) {
   };
 
   const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    if (timeStr.includes('T')) {
-      const timePart = timeStr.split('T')[1];
-      return timePart.substring(0, 5);
-    }
-    return timeStr;
-  };
+  if (!timeStr) return '';
+  // Si ya incluye "hs", limpiamos duplicados o dejamos un solo "hs" prolijo al final
+  let cleanTime = String(timeStr).replace(/hs/gi, '').trim();
+  if (cleanTime.includes('T')) {
+    const timePart = cleanTime.split('T')[1];
+    cleanTime = timePart.substring(0, 5);
+  }
+  return cleanTime + " hs";
+};
 
   return (
     <section className="py-12 px-6 max-w-5xl mx-auto">
