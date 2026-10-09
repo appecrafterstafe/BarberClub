@@ -147,7 +147,7 @@ export default function App() {
             <Hero onBookClick={() => {
               document.getElementById('booking-section').scrollIntoView({ behavior: 'smooth' });
             }} />
-            <BookingSection onAddAppointment={addAppointment} />
+            <BookingSection onAddAppointment={addAppointment} appointments={appointments} />
           </>
         ) : (
           <div>
