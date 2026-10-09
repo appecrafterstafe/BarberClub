@@ -9,7 +9,7 @@ const SERVICES = [
 
 const TIMES = ['09:00', '09:45', '10:30', '11:15', '12:00', '14:00', '14:45', '15:30', '16:15', '17:00', '17:45', '18:30'];
 
-export default function BookingSection({ onAddAppointment }) {
+export default function BookingSection({ onAddAppointment, appointments = [] }) {
   const [selectedService, setSelectedService] = useState(SERVICES[0]);
   const [selectedDate, setSelectedDate] = useState('2026-06-10');
   const [selectedTime, setSelectedTime] = useState('17:00');
