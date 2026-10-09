@@ -3,46 +3,86 @@ import Navbar from './Navbar';
 import Hero from './Hero';
 import BookingSection from './BookingSection';
 import BarberPanel from './BarberPanel';
-import { Key, ShieldCheck } from 'lucide-react';
+import { Key, ShieldCheck, Loader2 } from 'lucide-react';
+
+// URL de tu API de Google Apps Script recién creada
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuDLwzYOlNXlnb85bKUfwETQ06WOVLkBNOpZmY1KhiHQSWcC3DOKGXla0ciwFw9yKI/exec';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [errorPassword, setErrorPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   
-  // Estado para la contraseña del panel (por defecto "1234", pero se puede cambiar y se guarda)
   const [adminPassword, setAdminPassword] = useState(() => {
     return localStorage.getItem('barber_admin_pass') || '1234';
   });
 
-  // Estados para cambiar la contraseña desde el panel
   const [showChangePass, setShowChangePass] = useState(false);
   const [currentPassInput, setCurrentPassInput] = useState('');
   const [newPassInput, setNewPassInput] = useState('');
   const [passSuccess, setPassSuccess] = useState('');
 
-  const [appointments, setAppointments] = useState(() => {
-    const saved = localStorage.getItem('barber_appointments');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, service: 'Corte clásico', price: 18000, date: '2026-07-10', time: '10:30', client: 'Martín García', phone: '+54 9 11 2345-6789', barber: 'Carlos', status: 'Confirmado' }
-    ];
-  });
+  const [appointments, setAppointments] = useState([]);
+
+  // Cargar turnos desde Google Sheets al iniciar
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+      setAppointments(data.reverse()); // Los más recientes primero
+    } catch (error) {
+      console.error('Error al cargar turnos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem('barber_appointments', JSON.stringify(appointments));
-  }, [appointments]);
+    fetchAppointments();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('barber_admin_pass', adminPassword);
   }, [adminPassword]);
 
-  const addAppointment = (newApp) => {
-    setAppointments([ { id: Date.now(), ...newApp, status: 'Confirmado' }, ...appointments ]);
+  // Agregar turno enviándolo a Google Sheets
+  const addAppointment = async (newApp) => {
+    try {
+      setLoading(true);
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', ...newApp })
+      });
+      // Recargar turnos desde la planilla
+      setTimeout(fetchAppointments, 1500);
+    } catch (error) {
+      console.error('Error al guardar turno:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cancelAppointment = (id) => {
-    setAppointments(appointments.map(app => app.id === id ? { ...app, status: 'Cancelado' } : app));
+  // Cancelar turno actualizándolo en Google Sheets
+  const cancelAppointment = async (id) => {
+    try {
+      setLoading(true);
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', id: id })
+      });
+      setTimeout(fetchAppointments, 1500);
+    } catch (error) {
+      console.error('Error al cancelar turno:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = (e) => {
@@ -51,6 +91,7 @@ export default function App() {
       setIsAuthenticated(true);
       setErrorPassword(false);
       setPasswordInput('');
+      fetchAppointments(); // Actualizar datos al entrar al panel
     } else {
       setErrorPassword(true);
     }
@@ -132,18 +173,24 @@ export default function App() {
               </div>
             ) : (
               <div className="py-8 px-6 max-w-5xl mx-auto space-y-6">
-                {/* Botón para cambiar contraseña */}
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowChangePass(!showChangePass)}
-                    className="flex items-center space-x-2 text-xs bg-zinc-900 border border-zinc-700 hover:border-amber-500 text-zinc-300 px-4 py-2 rounded-lg transition"
-                  >
-                    <Key size={14} className="text-amber-500" />
-                    <span>{showChangePass ? 'Ocultar ajuste de clave' : 'Cambiar contraseña de acceso'}</span>
-                  </button>
+                <div className="flex justify-between items-center">
+                  {loading && (
+                    <div className="flex items-center space-x-2 text-xs text-amber-400">
+                      <Loader2 className="animate-spin" size={14} />
+                      <span>Sincronizando con Google Sheets...</span>
+                    </div>
+                  )}
+                  <div className="ml-auto">
+                    <button
+                      onClick={() => setShowChangePass(!showChangePass)}
+                      className="flex items-center space-x-2 text-xs bg-zinc-900 border border-zinc-700 hover:border-amber-500 text-zinc-300 px-4 py-2 rounded-lg transition"
+                    >
+                      <Key size={14} className="text-amber-500" />
+                      <span>{showChangePass ? 'Ocultar ajuste de clave' : 'Cambiar contraseña de acceso'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Formulario desplegable para cambiar clave */}
                 {showChangePass && (
                   <div className="bg-zinc-900 border border-amber-500/40 p-6 rounded-2xl max-w-md ml-auto space-y-4 shadow-xl">
                     <h3 className="font-bold text-sm text-white flex items-center space-x-2">
@@ -184,7 +231,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Panel de turnos habitual */}
                 <BarberPanel appointments={appointments} onCancel={cancelAppointment} />
               </div>
             )}
@@ -193,7 +239,7 @@ export default function App() {
       </div>
 
       <footer className="border-t border-zinc-800 py-8 text-center text-xs text-zinc-500">
-        <p>© 2026 BARBER CLUB · Appe Crafter STAFE · TODOS LOS DERECHOS RESERVADOS</p>
+        <p>© 2026 BARBER CLUB · TODOS LOS DERECHOS RESERVADOS</p>
       </footer>
     </div>
   );
