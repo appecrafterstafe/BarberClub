@@ -12,7 +12,7 @@ const TIMES = ['09:00', '09:45', '10:30', '11:15', '12:00', '14:00', '14:45', '1
 export default function BookingSection({ onAddAppointment }) {
   const [selectedService, setSelectedService] = useState(SERVICES[0]);
   const [selectedDate, setSelectedDate] = useState('2026-06-10');
-  const [selectedTime, setSelectedTime] = useState('10:30');
+  const [selectedTime, setSelectedTime] = useState('17:00');
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [barber, setBarber] = useState('Carlos');
@@ -25,7 +25,7 @@ export default function BookingSection({ onAddAppointment }) {
       return;
     }
 
-    // Formatear la fecha a DD/MM/YYYY para evitar que Google Sheets la desconfigure
+    // Formatear la fecha a DD/MM/YYYY limpiamente
     const [year, month, day] = selectedDate.split('-');
     const formattedDate = `${day}/${month}/${year}`;
 
@@ -33,7 +33,7 @@ export default function BookingSection({ onAddAppointment }) {
       service: selectedService.name,
       price: selectedService.price,
       date: formattedDate,
-      time: selectedTime,
+      time: selectedTime, // Se envía exactamente el string elegido (ej. "17:00") sin conversiones de zona horaria
       client: clientName,
       phone: clientPhone,
       barber: barber
