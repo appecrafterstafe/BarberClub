@@ -33,7 +33,7 @@ export default function BookingSection({ onAddAppointment }) {
       service: selectedService.name,
       price: selectedService.price,
       date: formattedDate,
-      time: selectedTime, // Se envía exactamente el string elegido (ej. "17:00") sin conversiones de zona horaria
+     time: selectedTime + " hs", // <-- Cambiar esta línea agregando " hs" o un formato seguro
       client: clientName,
       phone: clientPhone,
       barber: barber
