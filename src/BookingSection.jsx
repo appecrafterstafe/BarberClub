@@ -25,10 +25,14 @@ export default function BookingSection({ onAddAppointment }) {
       return;
     }
 
+    // Formatear la fecha a DD/MM/YYYY para evitar que Google Sheets la desconfigure
+    const [year, month, day] = selectedDate.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+
     onAddAppointment({
       service: selectedService.name,
       price: selectedService.price,
-      date: selectedDate,
+      date: formattedDate,
       time: selectedTime,
       client: clientName,
       phone: clientPhone,
