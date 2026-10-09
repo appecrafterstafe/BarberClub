@@ -46,6 +46,44 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
     setTimeout(() => setSuccess(false), 4000);
   };
 
+// Convierte "HH:MM" a minutos totales del día
+  const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const clean = timeStr.replace(/hs/gi, '').trim();
+    const [h, m] = clean.split(':').map(Number);
+    return h * 60 + (m || 0);
+  };
+
+  // Verifica si un horario está ocupado según la fecha, el barbero y la duración
+  const isTimeDisabled = (timeStr) => {
+    const slotStart = timeToMinutes(timeStr);
+    const serviceDuration = selectedService.duration || 30;
+    const slotEnd = slotStart + serviceDuration;
+
+    // Formatear la fecha seleccionada para comparar (DD/MM/YYYY)
+    const [year, month, day] = selectedDate.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+
+    // Filtrar citas del mismo día y barbero (o si elige "Cualquiera")
+    const conflictingAppointments = appointments.filter(app => {
+      const isSameDate = app.date === formattedDate;
+      const isSameBarber = barber === 'Cualquiera' || app.barber === barber;
+      return isSameDate && isSameBarber;
+    });
+
+    // Comprobar solapamiento
+    for (let app of conflictingAppointments) {
+      const appStart = timeToMinutes(app.time);
+      // Duración estimada por defecto de la cita previa (ej. 45 min)
+      const appEnd = appStart + 45; 
+
+      if (slotStart < appEnd && slotEnd > appStart) {
+        return true;
+      }
+    }
+    return false;
+  };
+  
   return (
     <section id="booking-section" className="py-16 px-6 max-w-4xl mx-auto">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-10 shadow-xl">
@@ -98,8 +136,8 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
                 onChange={(e) => setBarber(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-amber-500"
               >
-                <option value="Carlos">Carlos (Master Barber)</option>
-                <option value="Lucas">Lucas (Stylist)</option>
+                <option value="Barbero1">Barb1 (Barber)</option>
+                <option value="Barbero2">Barb2 (Barber)</option>
                 <option value="Cualquiera">Mejor disponible</option>
               </select>
             </div>
@@ -107,22 +145,28 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
 
           <div>
             <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-2">4. Horario disponible</label>
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-              {TIMES.map((t) => (
-                <button
-                  type="button"
-                  key={t}
-                  onClick={() => setSelectedTime(t)}
-                  className={`py-2 text-xs font-mono rounded border transition ${
-                    selectedTime === t
-                      ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500'
-                      : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+   <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+  {TIMES.map((t) => {
+    const disabled = isTimeDisabled(t);
+    return (
+      <button
+        type="button"
+        key={t}
+        disabled={disabled}
+        onClick={() => !disabled && setSelectedTime(t)}
+        className={`py-2 text-xs font-mono rounded border transition ${
+          disabled
+            ? 'bg-zinc-900 border-zinc-900 text-zinc-700 cursor-not-allowed opacity-40 line-through'
+            : selectedTime === t
+            ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500'
+            : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600'
+        }`}
+      >
+        {t}
+      </button>
+    );
+  })}
+</div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
