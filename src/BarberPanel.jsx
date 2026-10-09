@@ -2,6 +2,25 @@ import React from 'react';
 import { Calendar, User, Clock, Phone, XCircle } from 'lucide-react';
 
 export default function BarberPanel({ appointments, onCancel }) {
+  // Función auxiliar para limpiar fechas largas o con formato ISO si las hubiera
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    if (timeStr.includes('T')) {
+      const timePart = timeStr.split('T')[1];
+      return timePart.substring(0, 5);
+    }
+    return timeStr;
+  };
+
   return (
     <section className="py-12 px-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -35,8 +54,8 @@ export default function BarberPanel({ appointments, onCancel }) {
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-4 text-xs text-zinc-400 pt-1">
-                  <span className="flex items-center space-x-1"><Calendar size={13} className="text-amber-500" /><span>{app.date}</span></span>
-                  <span className="flex items-center space-x-1"><Clock size={13} className="text-amber-500" /><span>{app.time} hs</span></span>
+                  <span className="flex items-center space-x-1"><Calendar size={13} className="text-amber-500" /><span>{formatDate(app.date)}</span></span>
+                  <span className="flex items-center space-x-1"><Clock size={13} className="text-amber-500" /><span>{formatTime(app.time)} hs</span></span>
                   <span className="flex items-center space-x-1"><Phone size={13} className="text-amber-500" /><span>{app.phone}</span></span>
                   <span className="flex items-center space-x-1"><User size={13} className="text-amber-500" /><span>Barbero: {app.barber}</span></span>
                 </div>
