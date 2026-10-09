@@ -55,7 +55,7 @@ export default function BarberPanel({ appointments, onCancel }) {
                 </div>
                 <div className="flex flex-wrap gap-4 text-xs text-zinc-400 pt-1">
                   <span className="flex items-center space-x-1"><Calendar size={13} className="text-amber-500" /><span>{formatDate(app.date)}</span></span>
-                  <span className="flex items-center space-x-1"><Clock size={13} className="text-amber-500" /><span>{formatTime(app.time)} hs</span></span>
+                  <span className="flex items-center space-x-1"><Clock size={13} className="text-amber-500" /><span>{formatTime(app.time)}</span></span>
                   <span className="flex items-center space-x-1"><Phone size={13} className="text-amber-500" /><span>{app.phone}</span></span>
                   <span className="flex items-center space-x-1"><User size={13} className="text-amber-500" /><span>Barbero: {app.barber}</span></span>
                 </div>
