@@ -5,7 +5,6 @@ import BookingSection from './BookingSection';
 import BarberPanel from './BarberPanel';
 import { Key, ShieldCheck, Loader2 } from 'lucide-react';
 
-// URL de tu API de Google Apps Script recién creada
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxuDLwzYOlNXlnb85bKUfwETQ06WOVLkBNOpZmY1KhiHQSWcC3DOKGXla0ciwFw9yKI/exec';
 
 export default function App() {
@@ -15,10 +14,7 @@ export default function App() {
   const [errorPassword, setErrorPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [adminPassword, setAdminPassword] = useState(() => {
-    return localStorage.getItem('barber_admin_pass') || '1234';
-  });
-
+  const [adminPassword, setAdminPassword] = useState('1234');
   const [showChangePass, setShowChangePass] = useState(false);
   const [currentPassInput, setCurrentPassInput] = useState('');
   const [newPassInput, setNewPassInput] = useState('');
@@ -26,40 +22,42 @@ export default function App() {
 
   const [appointments, setAppointments] = useState([]);
 
-  // Cargar turnos desde Google Sheets al iniciar
-  const fetchAppointments = async () => {
+  // Cargar turnos y contraseña desde Google Sheets
+  const fetchData = async () => {
     try {
       setLoading(true);
       const response = await fetch(SCRIPT_URL);
       const data = await response.json();
-      setAppointments(data.reverse()); // Los más recientes primero
+      setAppointments(data.appointments.reverse());
+      if (data.adminPassword) {
+        setAdminPassword(data.adminPassword);
+      }
     } catch (error) {
-      console.error('Error al cargar turnos:', error);
+      console.error('Error al sincronizar datos:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAppointments();
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('barber_admin_pass', adminPassword);
-  }, [adminPassword]);
-
-  // Agregar turno enviándolo a Google Sheets
   const addAppointment = async (newApp) => {
     try {
       setLoading(true);
-      await fetch(SCRIPT_URL, {
+      const response = await fetch(SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'add', ...newApp })
       });
-      // Recargar turnos desde la planilla
-      setTimeout(fetchAppointments, 1500);
+      
+      // Esperamos un momento y refrescamos los turnos
+      setTimeout(async () => {
+        await fetchData();
+        alert('¡Turno reservado con éxito!');
+      }, 1500);
     } catch (error) {
       console.error('Error al guardar turno:', error);
     } finally {
@@ -67,7 +65,6 @@ export default function App() {
     }
   };
 
-  // Cancelar turno actualizándolo en Google Sheets
   const cancelAppointment = async (id) => {
     try {
       setLoading(true);
@@ -77,7 +74,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'cancel', id: id })
       });
-      setTimeout(fetchAppointments, 1500);
+      setTimeout(fetchData, 1500);
     } catch (error) {
       console.error('Error al cancelar turno:', error);
     } finally {
@@ -91,13 +88,13 @@ export default function App() {
       setIsAuthenticated(true);
       setErrorPassword(false);
       setPasswordInput('');
-      fetchAppointments(); // Actualizar datos al entrar al panel
+      fetchData();
     } else {
       setErrorPassword(true);
     }
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     if (currentPassInput !== adminPassword) {
       setPassSuccess('Error: La contraseña actual es incorrecta.');
@@ -107,11 +104,27 @@ export default function App() {
       setPassSuccess('Error: La nueva contraseña debe tener al menos 4 caracteres.');
       return;
     }
-    setAdminPassword(newPassInput);
-    setCurrentPassInput('');
-    setNewPassInput('');
-    setPassSuccess('¡Contraseña actualizada con éxito!');
-    setTimeout(() => setPassSuccess(''), 4000);
+
+    try {
+      setLoading(true);
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'changePassword', newPassword: newPassInput })
+      });
+      
+      setAdminPassword(newPassInput);
+      setCurrentPassInput('');
+      setNewPassInput('');
+      setPassSuccess('¡Contraseña actualizada en la nube con éxito!');
+      setTimeout(() => setPassSuccess(''), 4000);
+      setTimeout(fetchData, 1500);
+    } catch (error) {
+      setPassSuccess('Error al actualizar contraseña.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleNavClick = () => {
@@ -195,7 +208,7 @@ export default function App() {
                   <div className="bg-zinc-900 border border-amber-500/40 p-6 rounded-2xl max-w-md ml-auto space-y-4 shadow-xl">
                     <h3 className="font-bold text-sm text-white flex items-center space-x-2">
                       <ShieldCheck size={16} className="text-amber-500" />
-                      <span>Modificar Contraseña de Admin</span>
+                      <span>Modificar Contraseña de Admin en la Nube</span>
                     </h3>
                     {passSuccess && (
                       <p className={`text-xs p-2 rounded ${passSuccess.includes('Error') ? 'bg-rose-950/50 text-rose-300 border border-rose-800' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800'}`}>
