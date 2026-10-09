@@ -33,7 +33,8 @@ export default function BookingSection({ onAddAppointment }) {
       service: selectedService.name,
       price: selectedService.price,
       date: formattedDate,
-     time: selectedTime + " hs", // <-- Cambiar esta línea agregando " hs" o un formato seguro
+    time: "'" + selectedTime, // <-- Forzar como texto plano con comilla simple
+      client: clientName,
       client: clientName,
       phone: clientPhone,
       barber: barber
