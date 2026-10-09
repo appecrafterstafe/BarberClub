@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 
 const SERVICES = [
-  { id: 1, name: 'Corte clásico', desc: 'Precisión, tijera y máquina · 45 min', price: 18000 },
-  { id: 2, name: 'Barba premium', desc: 'Perfilado, navaja y toallas calientes · 30 min', price: 12000 },
-  { id: 3, name: 'Corte + barba', desc: 'El ritual completo · 60 min', price: 27000 },
+  { id: 1, name: 'Corte clásico', desc: 'Precisión, tijera y máquina', duration: 45, price: 18000 },
+  { id: 2, name: 'Barba premium', desc: 'Perfilado, navaja y toallas calientes', duration: 30, price: 12000 },
+  { id: 3, name: 'Corte + barba', desc: 'El ritual completo', duration: 60, price: 27000 },
 ];
 
 const TIMES = ['09:00', '09:45', '10:30', '11:15', '12:00', '14:00', '14:45', '15:30', '16:15', '17:00', '17:45', '18:30'];
