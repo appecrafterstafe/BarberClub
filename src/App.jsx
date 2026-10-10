@@ -14,7 +14,8 @@ export default function App() {
   const [errorPassword, setErrorPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [adminPassword, setAdminPassword] = useState(null);
+  // Ahora solo guardamos si existe una contraseña en el backend (boolean)
+  const [hasAdminPassword, setHasAdminPassword] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
   const [currentPassInput, setCurrentPassInput] = useState('');
   const [newPassInput, setNewPassInput] = useState('');
@@ -28,9 +29,7 @@ export default function App() {
       const response = await fetch(SCRIPT_URL);
       const data = await response.json();
       setAppointments(Array.isArray(data.appointments) ? data.appointments.reverse() : []);
-      if (data.adminPassword) {
-        setAdminPassword(data.adminPassword);
-      }
+      setHasAdminPassword(Boolean(data.adminPasswordExists));
     } catch (error) {
       console.error('Error al sincronizar datos:', error);
     } finally {
@@ -45,16 +44,21 @@ export default function App() {
   const addAppointment = async (newApp) => {
     try {
       setLoading(true);
-      await fetch(SCRIPT_URL, {
+      const res = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'add', ...newApp })
       });
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok || body.ok === false) {
+        throw new Error(body.message || 'Error del servidor');
+      }
 
       setTimeout(async () => {
         await fetchData();
         alert('¡Turno reservado con éxito!');
-      }, 1500);
+      }, 800);
     } catch (error) {
       console.error('Error al guardar turno:', error);
       alert('No se pudo guardar el turno. Verificá la conexión o la configuración del script en Google.');
@@ -66,12 +70,15 @@ export default function App() {
   const cancelAppointment = async (id) => {
     try {
       setLoading(true);
-      await fetch(SCRIPT_URL, {
+      const res = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'cancel', id: id })
       });
-      setTimeout(fetchData, 1500);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || body.ok === false) throw new Error(body.message || 'Error al cancelar');
+
+      setTimeout(fetchData, 800);
     } catch (error) {
       console.error('Error al cancelar turno:', error);
       alert('No se pudo cancelar el turno. Verificá la conexión o la configuración del script en Google.');
@@ -80,29 +87,35 @@ export default function App() {
     }
   };
 
-  const handleLogin = (e) => {
+  // En lugar de exponer la contraseña, validamos en el servidor
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (adminPassword === null) {
+    try {
+      setLoading(true);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'checkPassword', password: passwordInput })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.ok) {
+        setIsAuthenticated(true);
+        setErrorPassword(false);
+        setPasswordInput('');
+        fetchData();
+      } else {
+        setErrorPassword(true);
+      }
+    } catch (error) {
+      console.error('Error al validar contraseña:', error);
       setErrorPassword(true);
-      alert('Aún no se obtuvo la contraseña de admin. Intentá en unos segundos.');
-      return;
-    }
-    if (passwordInput === adminPassword) {
-      setIsAuthenticated(true);
-      setErrorPassword(false);
-      setPasswordInput('');
-      fetchData();
-    } else {
-      setErrorPassword(true);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (adminPassword && currentPassInput !== adminPassword) {
-      setPassSuccess('Error: La contraseña actual es incorrecta.');
-      return;
-    }
     if (!newPassInput || newPassInput.length < 4) {
       setPassSuccess('Error: La nueva contraseña debe tener al menos 4 caracteres.');
       return;
@@ -110,18 +123,22 @@ export default function App() {
 
     try {
       setLoading(true);
-      await fetch(SCRIPT_URL, {
+      const res = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'changePassword', newPassword: newPassInput })
+        body: JSON.stringify({ action: 'changePassword', currentPassword: currentPassInput, newPassword: newPassInput })
       });
+      const body = await res.json().catch(() => ({}));
 
-      setAdminPassword(newPassInput);
-      setCurrentPassInput('');
-      setNewPassInput('');
-      setPassSuccess('¡Contraseña actualizada en la nube con éxito!');
-      setTimeout(() => setPassSuccess(''), 4000);
-      setTimeout(fetchData, 1500);
+      if (res.ok && body.ok) {
+        setPassSuccess('¡Contraseña actualizada en la nube con éxito!');
+        setCurrentPassInput('');
+        setNewPassInput('');
+        setTimeout(() => setPassSuccess(''), 4000);
+        setTimeout(fetchData, 800);
+      } else {
+        setPassSuccess(body.message || 'Error al actualizar contraseña.');
+      }
     } catch (error) {
       setPassSuccess('Error al actualizar contraseña.');
     } finally {
@@ -158,16 +175,16 @@ export default function App() {
                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-xl">
                   <h2 className="text-xl font-bold mb-2 text-white">ACCESO RESTRINGIDO</h2>
                   <p className="text-zinc-400 text-xs mb-6">Ingresá la contraseña para acceder al Panel de Barberos.</p>
-
+                  
                   <form onSubmit={handleLogin} className="space-y-4">
                     <input
                       type="password"
-                      placeholder={adminPassword === null ? 'Sincronizando contraseña...' : 'Contraseña de admin'}
+                      placeholder={hasAdminPassword ? "Contraseña de admin" : "No hay contraseña configurada"}
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm text-center focus:outline-none focus:border-amber-500"
                       autoFocus
-                      disabled={adminPassword === null}
+                      disabled={loading}
                     />
                     {errorPassword && (
                       <p className="text-rose-400 text-xs">Contraseña incorrecta. Intentá de nuevo.</p>
@@ -175,7 +192,7 @@ export default function App() {
                     <button
                       type="submit"
                       className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3 rounded-lg uppercase tracking-wider text-xs transition cursor-pointer"
-                      disabled={adminPassword === null}
+                      disabled={loading}
                     >
                       Ingresar al Panel
                     </button>
@@ -227,6 +244,7 @@ export default function App() {
                           value={currentPassInput}
                           onChange={(e) => setCurrentPassInput(e.target.value)}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-white text-xs focus:outline-none focus:border-amber-500"
+                          placeholder={hasAdminPassword ? 'Contraseña actual' : 'No hay contraseña actual (crear nueva)'}
                         />
                       </div>
                       <div>
