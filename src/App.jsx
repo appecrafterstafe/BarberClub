@@ -5,7 +5,7 @@ import BookingSection from './BookingSection';
 import BarberPanel from './BarberPanel';
 import { Key, ShieldCheck, Loader2 } from 'lucide-react';
 
-const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbxuDLwzYOlNXlnb85bKUfwETQ06WOVLkBNOpZmY1KhiHQSWcC3DOKGXla0ciwFw9yKI/exec';
+const SCRIPT_URL = import.meta.env.VITE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyVmhFDN3q9dVQ6lFwJbmzAySzH95FvoNkEb3RHuKYMxd5KSx2svojmkw-fkF-ML2mP/exec';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
