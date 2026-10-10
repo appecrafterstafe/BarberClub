@@ -13,8 +13,8 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [errorPassword, setErrorPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const [adminPassword, setAdminPassword] = useState('1234');
+
+  const [adminPassword, setAdminPassword] = useState(null);
   const [showChangePass, setShowChangePass] = useState(false);
   const [currentPassInput, setCurrentPassInput] = useState('');
   const [newPassInput, setNewPassInput] = useState('');
@@ -22,13 +22,12 @@ export default function App() {
 
   const [appointments, setAppointments] = useState([]);
 
-  // Cargar turnos y contraseña desde Google Sheets
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await fetch(SCRIPT_URL);
       const data = await response.json();
-      setAppointments(data.appointments.reverse());
+      setAppointments(Array.isArray(data.appointments) ? data.appointments.reverse() : []);
       if (data.adminPassword) {
         setAdminPassword(data.adminPassword);
       }
@@ -46,20 +45,19 @@ export default function App() {
   const addAppointment = async (newApp) => {
     try {
       setLoading(true);
-      const response = await fetch(SCRIPT_URL, {
+      await fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'add', ...newApp })
       });
-      
-      // Esperamos un momento y refrescamos los turnos
+
       setTimeout(async () => {
         await fetchData();
         alert('¡Turno reservado con éxito!');
       }, 1500);
     } catch (error) {
       console.error('Error al guardar turno:', error);
+      alert('No se pudo guardar el turno. Verificá la conexión o la configuración del script en Google.');
     } finally {
       setLoading(false);
     }
@@ -70,13 +68,13 @@ export default function App() {
       setLoading(true);
       await fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'cancel', id: id })
       });
       setTimeout(fetchData, 1500);
     } catch (error) {
       console.error('Error al cancelar turno:', error);
+      alert('No se pudo cancelar el turno. Verificá la conexión o la configuración del script en Google.');
     } finally {
       setLoading(false);
     }
@@ -84,6 +82,11 @@ export default function App() {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    if (adminPassword === null) {
+      setErrorPassword(true);
+      alert('Aún no se obtuvo la contraseña de admin. Intentá en unos segundos.');
+      return;
+    }
     if (passwordInput === adminPassword) {
       setIsAuthenticated(true);
       setErrorPassword(false);
@@ -96,7 +99,7 @@ export default function App() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (currentPassInput !== adminPassword) {
+    if (adminPassword && currentPassInput !== adminPassword) {
       setPassSuccess('Error: La contraseña actual es incorrecta.');
       return;
     }
@@ -109,11 +112,10 @@ export default function App() {
       setLoading(true);
       await fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'changePassword', newPassword: newPassInput })
       });
-      
+
       setAdminPassword(newPassInput);
       setCurrentPassInput('');
       setNewPassInput('');
@@ -141,7 +143,7 @@ export default function App() {
     <div className="min-h-screen bg-[#0f0f0f] text-gray-100 flex flex-col justify-between">
       <div>
         <Navbar currentView={currentView} setCurrentView={handleNavClick} />
-        
+
         {currentView === 'home' ? (
           <>
             <Hero onBookClick={() => {
@@ -156,15 +158,16 @@ export default function App() {
                 <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl shadow-xl">
                   <h2 className="text-xl font-bold mb-2 text-white">ACCESO RESTRINGIDO</h2>
                   <p className="text-zinc-400 text-xs mb-6">Ingresá la contraseña para acceder al Panel de Barberos.</p>
-                  
+
                   <form onSubmit={handleLogin} className="space-y-4">
                     <input
                       type="password"
-                      placeholder="Contraseña (por defecto 1234)"
+                      placeholder={adminPassword === null ? 'Sincronizando contraseña...' : 'Contraseña de admin'}
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white text-sm text-center focus:outline-none focus:border-amber-500"
                       autoFocus
+                      disabled={adminPassword === null}
                     />
                     {errorPassword && (
                       <p className="text-rose-400 text-xs">Contraseña incorrecta. Intentá de nuevo.</p>
@@ -172,6 +175,7 @@ export default function App() {
                     <button
                       type="submit"
                       className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3 rounded-lg uppercase tracking-wider text-xs transition cursor-pointer"
+                      disabled={adminPassword === null}
                     >
                       Ingresar al Panel
                     </button>
@@ -211,7 +215,7 @@ export default function App() {
                       <span>Modificar Contraseña de Admin en la Nube</span>
                     </h3>
                     {passSuccess && (
-                      <p className={`text-xs p-2 rounded ${passSuccess.includes('Error') ? 'bg-rose-950/50 text-rose-300 border border-rose-800' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-800'}`}>
+                      <p className={`text-xs p-2 rounded ${passSuccess.includes('Error') ? 'bg-rose-950/50 text-rose-300 border border-rose-800' : 'bg-emerald-950/50 text-emerald-300 border border-emerald-700'}`}>
                         {passSuccess}
                       </p>
                     )}

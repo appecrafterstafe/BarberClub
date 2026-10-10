@@ -11,8 +11,11 @@ const TIMES = ['09:00', '09:45', '10:30', '11:15', '12:00', '14:00', '14:45', '1
 
 export default function BookingSection({ onAddAppointment, appointments = [] }) {
   const [selectedService, setSelectedService] = useState(SERVICES[0]);
-  const [selectedDate, setSelectedDate] = useState('2026-06-10');
-  const [selectedTime, setSelectedTime] = useState('17:00');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [selectedTime, setSelectedTime] = useState(TIMES[0]);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [barber, setBarber] = useState('Carlos');
@@ -25,7 +28,6 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
       return;
     }
 
-    // Formatear la fecha a DD/MM/YYYY limpiamente
     const [year, month, day] = selectedDate.split('-');
     const formattedDate = `${day}/${month}/${year}`;
 
@@ -33,11 +35,11 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
       service: selectedService.name,
       price: selectedService.price,
       date: formattedDate,
-    time: selectedTime + " hs", // <-- Cambiar a esto para que sea texto plano real con letras
-      client: clientName,
+      time: selectedTime + ' hs',
       client: clientName,
       phone: clientPhone,
-      barber: barber
+      barber: barber,
+      duration: selectedService.duration
     });
 
     setSuccess(true);
@@ -46,36 +48,31 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
     setTimeout(() => setSuccess(false), 4000);
   };
 
-// Convierte "HH:MM" a minutos totales del día
   const timeToMinutes = (timeStr) => {
     if (!timeStr) return 0;
-    const clean = timeStr.replace(/hs/gi, '').trim();
+    const clean = String(timeStr).replace(/hs/gi, '').trim();
     const [h, m] = clean.split(':').map(Number);
-    return h * 60 + (m || 0);
+    return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
   };
 
-  // Verifica si un horario está ocupado según la fecha, el barbero y la duración
   const isTimeDisabled = (timeStr) => {
     const slotStart = timeToMinutes(timeStr);
     const serviceDuration = selectedService.duration || 30;
     const slotEnd = slotStart + serviceDuration;
 
-    // Formatear la fecha seleccionada para comparar (DD/MM/YYYY)
     const [year, month, day] = selectedDate.split('-');
     const formattedDate = `${day}/${month}/${year}`;
 
-    // Filtrar citas del mismo día y barbero (o si elige "Cualquiera")
     const conflictingAppointments = appointments.filter(app => {
       const isSameDate = app.date === formattedDate;
       const isSameBarber = barber === 'Cualquiera' || app.barber === barber;
       return isSameDate && isSameBarber;
     });
 
-    // Comprobar solapamiento
     for (let app of conflictingAppointments) {
       const appStart = timeToMinutes(app.time);
-      // Duración estimada por defecto de la cita previa (ej. 45 min)
-      const appEnd = appStart + 45; 
+      const appDuration = Number(app.duration || 45);
+      const appEnd = appStart + appDuration;
 
       if (slotStart < appEnd && slotEnd > appStart) {
         return true;
@@ -83,7 +80,7 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
     }
     return false;
   };
-  
+
   return (
     <section id="booking-section" className="py-16 px-6 max-w-4xl mx-auto">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-10 shadow-xl">
@@ -145,28 +142,28 @@ export default function BookingSection({ onAddAppointment, appointments = [] }) 
 
           <div>
             <label className="block text-xs uppercase tracking-wider text-zinc-400 mb-2">4. Horario disponible</label>
-   <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-  {TIMES.map((t) => {
-    const disabled = isTimeDisabled(t);
-    return (
-      <button
-        type="button"
-        key={t}
-        disabled={disabled}
-        onClick={() => !disabled && setSelectedTime(t)}
-        className={`py-2 text-xs font-mono rounded border transition ${
-          disabled
-            ? 'bg-zinc-900 border-zinc-900 text-zinc-700 cursor-not-allowed opacity-40 line-through'
-            : selectedTime === t
-            ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500'
-            : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600'
-        }`}
-      >
-        {t}
-      </button>
-    );
-  })}
-</div>
+            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+              {TIMES.map((t) => {
+                const disabled = isTimeDisabled(t);
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    disabled={disabled}
+                    onClick={() => !disabled && setSelectedTime(t)}
+                    className={`py-2 text-xs font-mono rounded border transition ${
+                      disabled
+                        ? 'bg-zinc-900 border-zinc-900 text-zinc-700 cursor-not-allowed opacity-40 line-through'
+                        : selectedTime === t
+                        ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
